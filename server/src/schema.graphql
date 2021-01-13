@@ -1,0 +1,45 @@
+type Query {
+  tasks(
+    filter: String
+    skip: Int
+    take: Int
+  ): Task
+}
+
+type Mutation {
+  newTask(name: String!): Task!
+  signup(
+    email: String!
+    password: String!
+    username: String!
+  ): AuthPayload
+  login(username: String!, password: String!): AuthPayload
+  completeTask(taskId: ID!): Task
+  removeTask(taskId: ID!): Task
+}
+
+type Subscription {
+  taskDone: Task
+}
+
+type AuthPayload {
+  token: String
+  user: User
+}
+
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  tasks: [Task!]!
+}
+
+type Task {
+    id: ID!
+    name: String!
+    createdAt: DateTime!
+    createdBy: User
+    completed: Boolean!
+}
+
+scalar DateTime
