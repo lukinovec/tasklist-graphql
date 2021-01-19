@@ -1,32 +1,36 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { APP_SECRET } = require('../utils');
-const { PrismaClient } = require("@prisma/client");
 
-const prisma = new PrismaClient();
 
 async function newTask(parent, args, context, info) {
-    const { id } = await context.prisma.user.findFirst({
-        where: { username: "test" }
+    const user = await context.prisma.user.findFirst({
+        where: { username: args.username }
     });
 
-    const newTask = await prisma.task.create({
+    const newTask = await context.prisma.task.create({
         data: {
             name: args.name,
             createdBy: {
-                connect: { id: id }
+                connect: { id: user.id }
             }
         }
     });
     context.pubsub.publish('NEW_TASK', newTask);
 
-    return newTask;
+    return await context.prisma.task.findMany({
+        where: {
+            createdBy: {
+                username: args.username
+            }
+        }
+    });
 }
 
 async function completeTask(parent, args, context, info) {
     const task = await context.prisma.task.update({
         where: {
-            id: args.id
+            id: parseInt(args.taskId)
         },
         data: {
             completed: true
@@ -34,17 +38,30 @@ async function completeTask(parent, args, context, info) {
     });
     context.pubsub.publish('COMPLETED_TASK', task);
 
-    return task;
+    return await context.prisma.task.findMany({
+        where: {
+            createdBy: {
+                username: args.username
+            }
+        }
+    });
 }
+
 async function removeTask(parent, args, context, info) {
     const task = await context.prisma.task.delete({
         where: {
-            id: args.taskId
+            id: parseInt(args.taskId)
         }
     });
     context.pubsub.publish('DELETED_TASK', task);
 
-    return task;
+    return await context.prisma.task.findMany({
+        where: {
+            createdBy: {
+                username: args.username
+            }
+        }
+    });
 }
 
 async function signup(parent, args, context, info) {
@@ -62,9 +79,6 @@ async function signup(parent, args, context, info) {
 }
 
 async function login(parent, args, context, info) {
-    // findUnique({
-    //     where: { email: args.email }
-    // })
     const user = await context.prisma.user.findFirst({
         where: { username: args.username }
     });
